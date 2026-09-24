@@ -11,8 +11,8 @@
 #include <Wire.h>
 
 // --- AP NETWORK SETTINGS ---
-const char *ssid = "Robot_WiFi";
-const char *password = "12345678";
+const char *ssid = "NishMich1";
+const char *password = "12341234";
 unsigned int localPort = 4010;
 char packetBuffer[255];
 WiFiUDP udp;

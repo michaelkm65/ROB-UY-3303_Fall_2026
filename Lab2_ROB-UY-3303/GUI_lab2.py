@@ -137,8 +137,7 @@ odometry_path = []
 # Hint: Use the global constant TICKS_PER_REV_LEFT defined above.
 # =====================================================================
 def get_wheel_rotation_left(enc_counts):
-    delta_tick = enc_counts - prev_enc_a
-    fraction = delta_tick / TICKS_PER_REV_LEFT
+    fraction = enc_counts / TICKS_PER_REV_LEFT
     rotation_rad = fraction * 2 * math.pi
     return rotation_rad  # replace this with your implementation
 
@@ -157,8 +156,7 @@ def get_wheel_rotation_left(enc_counts):
 #   rotation_rad (float) — signed wheel rotation in radians.
 # =====================================================================
 def get_wheel_rotation_right(enc_counts):
-    delta_tick = enc_counts - prev_enc_b
-    fraction = delta_tick / TICKS_PER_REV_RIGHT
+    fraction = enc_counts / TICKS_PER_REV_RIGHT
     rotation_rad = fraction * 2 * math.pi
     return rotation_rad  # replace this with your implementation
 

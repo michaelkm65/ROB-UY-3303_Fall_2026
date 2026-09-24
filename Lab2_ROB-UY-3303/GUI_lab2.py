@@ -82,10 +82,10 @@ csv_writer = None
 #
 # Leave these as placeholders until you have made the physical measurements.
 # =====================================================================
-TICKS_PER_REV_LEFT = None   # TODO: your measured ticks per revolution, LEFT wheel (encoder A)
-TICKS_PER_REV_RIGHT = None  # TODO: your measured ticks per revolution, RIGHT wheel (encoder B)
-WHEEL_RADIUS_M = None       # TODO: replace with your measured value (float, meters)
-WHEELBASE_M = None          # TODO: replace with your measured value (float, meters)
+TICKS_PER_REV_LEFT = 374.5   # TODO: your measured ticks per revolution, LEFT wheel (encoder A)
+TICKS_PER_REV_RIGHT = 374.8  # TODO: your measured ticks per revolution, RIGHT wheel (encoder B)
+WHEEL_RADIUS_M = 0.03375       # TODO: replace with your measured value (float, meters)
+WHEELBASE_M = 0.17968  #weird measurement tbh        # TODO: replace with your measured value (float, meters)
 
 # --- ODOMETRY STATE ---
 # robot_state holds [x, y, theta] in meters and radians (global frame).
@@ -137,7 +137,10 @@ odometry_path = []
 # Hint: Use the global constant TICKS_PER_REV_LEFT defined above.
 # =====================================================================
 def get_wheel_rotation_left(enc_counts):
-    pass  # replace this with your implementation
+    delta_tick = enc_counts - prev_enc_a
+    fraction = delta_tick / TICKS_PER_REV_LEFT
+    rotation_rad = fraction * 2 * math.pi
+    return rotation_rad  # replace this with your implementation
 
 
 # =====================================================================
@@ -154,7 +157,10 @@ def get_wheel_rotation_left(enc_counts):
 #   rotation_rad (float) — signed wheel rotation in radians.
 # =====================================================================
 def get_wheel_rotation_right(enc_counts):
-    pass  # replace this with your implementation
+    delta_tick = enc_counts - prev_enc_b
+    fraction = delta_tick / TICKS_PER_REV_RIGHT
+    rotation_rad = fraction * 2 * math.pi
+    return rotation_rad  # replace this with your implementation
 
 
 # =====================================================================
@@ -182,7 +188,7 @@ def get_wheel_rotation_right(enc_counts):
 # Hint: Use the global constant WHEEL_RADIUS_M defined above.
 # =====================================================================
 def get_wheel_distance_left(rotation_rad):
-    pass  # replace this with your implementation
+    return WHEEL_RADIUS_M * rotation_rad  # replace this with your implementation
 
 
 # =====================================================================
@@ -198,7 +204,7 @@ def get_wheel_distance_left(rotation_rad):
 #   distance_m (float) — signed arc length traveled in meters.
 # =====================================================================
 def get_wheel_distance_right(rotation_rad):
-    pass  # replace this with your implementation
+    return WHEEL_RADIUS_M * rotation_rad  # replace this with your implementation
 
 
 # =====================================================================
@@ -248,7 +254,16 @@ def get_wheel_distance_right(rotation_rad):
 #   - Use WHEELBASE_M (the global constant) to compute L = WHEELBASE_M / 2.
 # =====================================================================
 def get_state_change(dist_right, dist_left):
-    pass  # replace this with your implementation
+    L = WHEELBASE_M / 2
+
+    delta_s = (dist_right + dist_left) / 2
+    delta_theta = (dist_right - dist_left) / (2 * L)
+
+    theta = robot_state[2]
+    delta_x = delta_s * math.cos(theta + delta_theta / 2)
+    delta_y = delta_s * math.sin(theta + delta_theta / 2)
+
+    return [delta_x, delta_y, delta_theta]  # replace this with your implementation
 
 
 # =====================================================================
@@ -296,7 +311,22 @@ def get_state_change(dist_right, dist_left):
 #       calling this function, so you do NOT need to update those globals here.
 # =====================================================================
 def predict_robot_state(last_state, enc_right, enc_left):
-    pass  # replace this with your implementation
+    delta_enc_left = enc_left - prev_enc_a
+    delta_enc_right = enc_right - prev_enc_b
+
+    rot_left = get_wheel_rotation_left(delta_enc_left)
+    rot_right = get_wheel_rotation_right(delta_enc_right)
+
+    dist_left = get_wheel_distance_left(rot_left)
+    dist_right = get_wheel_distance_right(rot_right)
+
+    [dx, dy, dtheta] = get_state_change(dist_right, dist_left)
+
+    new_x = last_state[0] + dx
+    new_y = last_state[1] + dy
+    new_theta = last_state[2] + dtheta
+
+    return [new_x, new_y, new_theta]  # replace this with your implementation
 
 
 def update_odometry():

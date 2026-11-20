@@ -854,7 +854,7 @@ def run_prm_unit_tests(plot=True):
 # =====================================================================
 def get_best_trajectory(X_0, P_d, t_plan):
     t_start = time.perf_counter()
-    best = 999999999999999
+    best = 99999999999999999999999999999
     best_T = []
     while (time.perf_counter() - t_start) < t_plan:
         T = sq_prm_planner(X_0, P_d)
@@ -908,25 +908,29 @@ TRAJ_LOOKAHEAD_S = 0.1          # s, the Delta t of Lecture 06A (you may tune it
 #   3. return the wheel speeds of point_tracking_controller(p_des,t, X)
 # =====================================================================
 
-# from lab 4 (so like lowk ai yk)
-def _trajectory_pose(T, t):
-    """Interpolate a pose at time t, clamping to the trajectory endpoints."""
-    from bisect import bisect_right
 
-    if t <= T[0][3]:
-        return T[0][:3]
-    if t >= T[-1][3]:
-        return T[-1][:3]
-    j = bisect_right(T, t, key=lambda pose: pose[3])
-    a, b = T[j - 1], T[j]
-    f = (t - a[3]) / (b[3] - a[3])
-    return [a[0] + f * (b[0] - a[0]),
-            a[1] + f * (b[1] - a[1]),
-            wrap_angle(a[2] + f * wrap_angle(b[2] - a[2]))]
+def binary_search(T, t):
+    left = 0
+    right = len(T)
+    ans = [0,0,0,0]
+    while (left <= right):
+        mid = (left + right) // 2
+        found = T[mid][3]
+        if (found <= t):
+            ans = T[mid]
+            left = mid + 1
+        else:
+            right = mid - 1
+    return ans
+
 
 def trajectory_tracking_controller(T, X, t):
+    X_des = binary_search(T, t+TRAJ_LOOKAHEAD_S)
 
-    X_des = _trajectory_pose(T, t + TRAJ_LOOKAHEAD_S)
+    #for i in range(1, len(T)):
+    #        if (T[i][3] <= t+TRAJ_LOOKAHEAD_S):
+    #            X_des = T[i]
+
     return point_tracking_controller(X_des, X)
 
 
@@ -1052,8 +1056,8 @@ def random_free_position(clearance=C_SPACE_RADIUS_M):
 def make_random_plan_scene(n_obstacles, radius):
     while True:
         obs = []
-        for i in n_obstacles:
-            ob = (random.uniform(map_5.X_Min, map_5.X_MAX), random.uniform(map_5.Y_Min, map_5.Y_MAX), radius)
+        for i in range(n_obstacles):
+            ob = (random.uniform(map_5.X_MIN, map_5.X_MAX), random.uniform(map_5.Y_MIN, map_5.Y_MAX), radius)
             obs.append(ob)
         scene = {"walls": map_5.BOUNDARY_WALLS,
                 "circles": obs,
@@ -1106,13 +1110,66 @@ T_PLANS = [0.01, 0.05, 0.1, 0.2, 0.5, 1.0]
 
 
 def run_planning_time_analysis(n_obstacles=4, radius=0.15, n_scenes=100, plot=True):
-    durs = []
-    for i in n_scenes:
+    # durs = []
+    # avgs = []
+    # succs = []
+    # # for t_plan in T_PLANS:
+    #     succ = 0
+    #     lcl_dur = []
+    #     for i in range(n_scenes):
+    #         scene = make_random_plan_scene(n_obstacles, radius)
+    #         T = get_best_trajectory(scene["X_0"], scene["P_d"], t_plan)
+    #         if len(T) > 1:
+    #             dur = trajectory_duration(T)
+    #             lcl_dur.append(dur)
+    #             succ += 1
+    #     durs.append(lcl_dur)
+    #     succs.append(succ/n_scenes)
+    #     print(f'{t_plan}: {succ}/{n_scenes} success rate')
+
+    #     s = sum(lcl_dur)
+    #     a = s/(len(lcl_dur))
+    #     avgs.append(a)
+
+    avgs = []
+    succs = [0 for t_plan in T_PLANS]
+    durs = [[] for t_plan in T_PLANS]
+    idx =-1
+    for i in range(n_scenes):
+        fail = False
         scene = make_random_plan_scene(n_obstacles, radius)
+        maybe = []
         for t_plan in T_PLANS:
-            dur = trajectory_duration(get_best_trajectory(scene["X_0"], scene["P_d"], t_plan))
-            durs.append[dur]
-    pass  # TODO: replace this with your implementation
+            idx += 1
+            T = get_best_trajectory(scene["X_0"], scene["P_d"], t_plan)
+            if len(T) > 1:
+                dur = trajectory_duration(T)
+                maybe.append(dur)
+                succs[idx] += 1
+            else:
+                fail = True
+        if not fail:
+            for i in range(len(T_PLANS)):
+                durs[i].append(maybe[i])
+
+        idx = -1
+
+    idx = -1
+    for t_plan in T_PLANS:
+        idx += 1
+        print(f'{t_plan}: {succs[idx]}/{n_scenes} success rate')
+
+        s = sum(durs[idx])
+        a = s/(len(durs[idx]))
+        avgs.append(a)
+
+    for succ in succs:
+        succ = succ / n_scenes
+
+    if plot:
+        plot_planning_time_results(T_PLANS, avgs, succs)
+
+    
 
 
 # =====================================================================
@@ -1388,13 +1445,13 @@ def run_self_checks():
 
 
 if __name__ == "__main__":
-    print("=== Self-checks (one function at a time) ===")
-    run_self_checks()
-    print("\n=== Part 2: single query PRM unit tests ===")
-    run_prm_unit_tests()
-    print("\n=== Part 3: simple optimization ===")
-    run_optimization_test()
-    print("\n=== Part 4: trajectory tracking ===")
-    run_traj_tracker_unit_tests()
-    # print("\n=== Part 6: planning time analysis ===")   # slow (~3 min): run it once for your report
-    # run_planning_time_analysis()
+    # print("=== Self-checks (one function at a time) ===")
+    # run_self_checks()
+    # print("\n=== Part 2: single query PRM unit tests ===")
+    # run_prm_unit_tests()
+    # print("\n=== Part 3: simple optimization ===")
+    # run_optimization_test()
+    # print("\n=== Part 4: trajectory tracking ===")
+    # run_traj_tracker_unit_tests()
+    print("\n=== Part 6: planning time analysis ===")   # slow (~3 min): run it once for your report
+    run_planning_time_analysis()
